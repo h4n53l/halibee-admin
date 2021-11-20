@@ -1,0 +1,150 @@
+{
+    "sourceFile": "functions/src/index.ts",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 33,
+            "patches": [
+                {
+                    "date": 1637441450346,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1637441461115,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,82 @@\n+import * as functions from \"firebase-functions\";\n+\n+import firebaseAdmin = require(\"firebase-admin\");\n+\n+firebaseAdmin.initializeApp();\n+\n+exports.addFreelancerRole = functions.firestore\n+  .document(\"/newFreelancer/addNew\")\n+  .onUpdate((snap, context) => {\n+    const userUID = snap.after.data().userUID;\n+    const category = snap.after.data().category;\n+    const hiveName = snap.after.data().hiveName;\n+    const skill = snap.after.data().skill;\n+\n+    firebaseAdmin\n+      .auth()\n+      .setCustomUserClaims(userUID, {\n+        freelancer: true,\n+      })\n+      .catch((error: any) => {\n+        return error;\n+      });\n+    return firebaseAdmin\n+      .auth()\n+      .getUser(userUID)\n+      .then((user) => {\n+        firebaseAdmin\n+          .firestore()\n+          .doc(\"freelancers/\" + user.uid)\n+          .set({\n+            about: \"I am a \" + skill + \".\",\n+            bannerImageURL:\n+              \"gs://halibee.appspot.com/images/defaultImages/banner-placeholder.png\",\n+            cardImageURL:\n+              \"gs://halibee.appspot.com/images/defaultImages/profile_placeholder.png\",\n+            category,\n+            description: \"I am a \" + skill + \".\",\n+            displayName: user.displayName,\n+            hiveName,\n+            projects: 0,\n+            rating: 0,\n+            skill,\n+            uniqueID: user.uid,\n+          });\n+      });\n+  });\n+\n+exports.createHiveRequest = functions.database\n+  .ref(\"{uid}/myProjects/{projectID}\")\n+  .onCreate((snapshot, context) => {\n+    const clientProjectReference = context.params.projectID;\n+    const hireRequestData = snapshot.val();\n+    return firebaseAdmin\n+      .database()\n+      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n+      .push({\n+        ...hireRequestData,\n+        clientProjectReference,\n+      })\n+      .then((hireRequestReference) => {\n+        hireRequestReference.ref.update({\n+          hireRequestReference: hireRequestReference.key,\n+        });\n+      });\n+  });\n+\n+exports.createClientProject = functions.database\n+  .ref(\"{uid}/clientProjects/{projectID}\")\n+  .onCreate((snapshot, context) => {\n+    const freelancerProjectReference = context.params.projectID;\n+    const clientProjectData = snapshot.val();\n+    return firebaseAdmin\n+      .database()\n+      .ref(clientProjectData.clientUID + \"/myProjects/\" + clientProjectData.clientProjectReference)\n+      .update({\n+        ...clientProjectData,\n+        requestStatus: 'Ongoing',\n+        freelancerProjectReference,\n+      });\n+  });\n+\n+  \n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441466534,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -78,85 +78,5 @@\n         freelancerProjectReference,\n       });\n   });\n \n-  \n-import * as functions from \"firebase-functions\";\n-\n-import firebaseAdmin = require(\"firebase-admin\");\n-\n-firebaseAdmin.initializeApp();\n-\n-exports.addFreelancerRole = functions.firestore\n-  .document(\"/newFreelancer/addNew\")\n-  .onUpdate((snap, context) => {\n-    const userUID = snap.after.data().userUID;\n-    const category = snap.after.data().category;\n-    const hiveName = snap.after.data().hiveName;\n-    const skill = snap.after.data().skill;\n-\n-    firebaseAdmin\n-      .auth()\n-      .setCustomUserClaims(userUID, {\n-        freelancer: true,\n-      })\n-      .catch((error: any) => {\n-        return error;\n-      });\n-    return firebaseAdmin\n-      .auth()\n-      .getUser(userUID)\n-      .then((user) => {\n-        firebaseAdmin\n-          .firestore()\n-          .doc(\"freelancers/\" + user.uid)\n-          .set({\n-            about: \"I am a \" + skill + \".\",\n-            bannerImageURL:\n-              \"gs://halibee.appspot.com/images/defaultImages/banner-placeholder.png\",\n-            cardImageURL:\n-              \"gs://halibee.appspot.com/images/defaultImages/profile_placeholder.png\",\n-            category,\n-            description: \"I am a \" + skill + \".\",\n-            displayName: user.displayName,\n-            hiveName,\n-            projects: 0,\n-            rating: 0,\n-            skill,\n-            uniqueID: user.uid,\n-          });\n-      });\n-  });\n-\n-exports.createHiveRequest = functions.database\n-  .ref(\"{uid}/myProjects/{projectID}\")\n-  .onCreate((snapshot, context) => {\n-    const clientProjectReference = context.params.projectID;\n-    const hireRequestData = snapshot.val();\n-    return firebaseAdmin\n-      .database()\n-      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n-      .push({\n-        ...hireRequestData,\n-        clientProjectReference,\n-      })\n-      .then((hireRequestReference) => {\n-        hireRequestReference.ref.update({\n-          hireRequestReference: hireRequestReference.key,\n-        });\n-      });\n-  });\n-\n-exports.createClientProject = functions.database\n-  .ref(\"{uid}/clientProjects/{projectID}\")\n-  .onCreate((snapshot, context) => {\n-    const freelancerProjectReference = context.params.projectID;\n-    const clientProjectData = snapshot.val();\n-    return firebaseAdmin\n-      .database()\n-      .ref(clientProjectData.clientUID + \"/myProjects/\" + clientProjectData.clientProjectReference)\n-      .update({\n-        ...clientProjectData,\n-        requestStatus: 'Ongoing',\n-        freelancerProjectReference,\n-      });\n-  });\n\\ No newline at end of file\n+expor\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441471746,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -78,5 +78,5 @@\n         freelancerProjectReference,\n       });\n   });\n \n-expor\n\\ No newline at end of file\n+exports.\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441604679,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -78,5 +78,5 @@\n         freelancerProjectReference,\n       });\n   });\n \n-exports.\n\\ No newline at end of file\n+exports.welcome\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441610543,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -78,5 +78,5 @@\n         freelancerProjectReference,\n       });\n   });\n \n-exports.welcome\n\\ No newline at end of file\n+exports.re\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441618131,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -78,5 +78,5 @@\n         freelancerProjectReference,\n       });\n   });\n \n-exports.re\n\\ No newline at end of file\n+exports.registerNewUser\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441624340,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -78,5 +78,5 @@\n         freelancerProjectReference,\n       });\n   });\n \n-exports.registerNewUser\n\\ No newline at end of file\n+exports.registerNewUser = functions\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441631498,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -78,5 +78,5 @@\n         freelancerProjectReference,\n       });\n   });\n \n-exports.registerNewUser = functions\n\\ No newline at end of file\n+exports.registerNewUser = functions.a\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441637679,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -78,5 +78,5 @@\n         freelancerProjectReference,\n       });\n   });\n \n-exports.registerNewUser = functions.a\n\\ No newline at end of file\n+exports.registerNewUser = functions.auth\n"
+                },
+                {
+                    "date": 1637441644391,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -79,4 +79,5 @@\n       });\n   });\n \n exports.registerNewUser = functions.auth\n+  .r\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441650650,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -79,5 +79,5 @@\n       });\n   });\n \n exports.registerNewUser = functions.auth\n-  .r\n\\ No newline at end of file\n+  .onCreate\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441674371,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -79,5 +79,5 @@\n       });\n   });\n \n exports.registerNewUser = functions.auth\n-  .onCreate\n\\ No newline at end of file\n+  \n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441682572,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -79,5 +79,5 @@\n       });\n   });\n \n exports.registerNewUser = functions.auth\n-  \n\\ No newline at end of file\n+  .user.\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441689590,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -79,5 +79,5 @@\n       });\n   });\n \n exports.registerNewUser = functions.auth\n-  .user.\n\\ No newline at end of file\n+  .user().\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441694816,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -79,5 +79,5 @@\n       });\n   });\n \n exports.registerNewUser = functions.auth\n-  .user().\n\\ No newline at end of file\n+  .user().onCreate()\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441707630,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -79,5 +79,5 @@\n       });\n   });\n \n exports.registerNewUser = functions.auth\n-  .user().onCreate()\n\\ No newline at end of file\n+  .user().onCreate(newUser)\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637441718769,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -79,5 +79,7 @@\n       });\n   });\n \n exports.registerNewUser = functions.auth\n-  .user().onCreate(newUser)\n\\ No newline at end of file\n+  .user().onCreate(newUser => {\n+      \n+  })\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442022528,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -80,6 +80,23 @@\n   });\n \n exports.registerNewUser = functions.auth\n   .user().onCreate(newUser => {\n-      \n+    firebaseAdmin\n+    .firestore()\n+    .doc(\"freelancers/\" + user.uid)\n+    .set({\n+      about: \"I am a \" + skill + \".\",\n+      bannerImageURL:\n+        \"gs://halibee.appspot.com/images/defaultImages/banner-placeholder.png\",\n+      cardImageURL:\n+        \"gs://halibee.appspot.com/images/defaultImages/profile_placeholder.png\",\n+      category,\n+      description: \"I am a \" + skill + \".\",\n+      displayName: user.displayName,\n+      hiveName,\n+      projects: 0,\n+      rating: 0,\n+      skill,\n+      uniqueID: user.uid,\n+    });\n   })\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442037034,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -82,9 +82,9 @@\n exports.registerNewUser = functions.auth\n   .user().onCreate(newUser => {\n     firebaseAdmin\n     .firestore()\n-    .doc(\"freelancers/\" + user.uid)\n+    .doc(\"freelancers/\" + newUser.uid)\n     .set({\n       about: \"I am a \" + skill + \".\",\n       bannerImageURL:\n         \"gs://halibee.appspot.com/images/defaultImages/banner-placeholder.png\",\n"
+                },
+                {
+                    "date": 1637442076621,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -82,21 +82,14 @@\n exports.registerNewUser = functions.auth\n   .user().onCreate(newUser => {\n     firebaseAdmin\n     .firestore()\n-    .doc(\"freelancers/\" + newUser.uid)\n+    .doc(\"users/\" + newUser.uid)\n     .set({\n-      about: \"I am a \" + skill + \".\",\n-      bannerImageURL:\n-        \"gs://halibee.appspot.com/images/defaultImages/banner-placeholder.png\",\n-      cardImageURL:\n-        \"gs://halibee.appspot.com/images/defaultImages/profile_placeholder.png\",\n-      category,\n-      description: \"I am a \" + skill + \".\",\n-      displayName: user.displayName,\n-      hiveName,\n-      projects: 0,\n-      rating: 0,\n-      skill,\n-      uniqueID: user.uid,\n+        displayName: user.displayName,\n+        email: user.email,\n+        emailVerified: user.emailVerified,\n+        joined: user.metadata.creationTime,\n+        avatar: user.photoURL,\n+        uniqueID: user.uid\n     });\n   })\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442085312,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -84,12 +84,12 @@\n     firebaseAdmin\n     .firestore()\n     .doc(\"users/\" + newUser.uid)\n     .set({\n-        displayName: user.displayName,\n+        displayName: newUser.displayName,\n         email: user.email,\n         emailVerified: user.emailVerified,\n         joined: user.metadata.creationTime,\n         avatar: user.photoURL,\n-        uniqueID: user.uid\n+        uniqueID: user.uid,\n     });\n   })\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442090589,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -85,11 +85,11 @@\n     .firestore()\n     .doc(\"users/\" + newUser.uid)\n     .set({\n         displayName: newUser.displayName,\n-        email: user.email,\n-        emailVerified: user.emailVerified,\n-        joined: user.metadata.creationTime,\n+        email: newUser.email,\n+        emailVerified: newUser.emailVerified,\n+        joined: newUser.metadata.creationTime,\n         avatar: user.photoURL,\n         uniqueID: user.uid,\n     });\n   })\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442406279,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -88,8 +88,9 @@\n         displayName: newUser.displayName,\n         email: newUser.email,\n         emailVerified: newUser.emailVerified,\n         joined: newUser.metadata.creationTime,\n-        avatar: user.photoURL,\n-        uniqueID: user.uid,\n+        avatar: newUser.photoURL,\n+        uniqueID: newUser.uid,\n\\ No newline at end of file\n     });\n-  })\n+  })\n+  \n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442412236,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -92,5 +92,6 @@\n         avatar: newUser.photoURL,\n         uniqueID: newUser.uid,\n     });\n   })\n-  \n\\ No newline at end of file\n+\n+exp\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442419141,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -93,5 +93,5 @@\n         uniqueID: newUser.uid,\n     });\n   })\n \n-exp\n\\ No newline at end of file\n+exports.set\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442427400,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -93,5 +93,5 @@\n         uniqueID: newUser.uid,\n     });\n   })\n \n-exports.set\n\\ No newline at end of file\n+exports.setLastSeen = \n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442444744,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -93,5 +93,5 @@\n         uniqueID: newUser.uid,\n     });\n   })\n \n-exports.setLastSeen = \n\\ No newline at end of file\n+exports.setLastSeen = fu\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442454646,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -93,5 +93,5 @@\n         uniqueID: newUser.uid,\n     });\n   })\n \n-exports.setLastSeen = fu\n\\ No newline at end of file\n+exports.setLastSeen = functions.auth\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442460710,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -93,5 +93,6 @@\n         uniqueID: newUser.uid,\n     });\n   })\n \n-exports.setLastSeen = functions.auth\n\\ No newline at end of file\n+exports.setLastSeen = functions.auth\n+  \n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442468482,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -94,5 +94,5 @@\n     });\n   })\n \n exports.setLastSeen = functions.auth\n-  \n\\ No newline at end of file\n+  .\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637442475903,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -94,5 +94,5 @@\n     });\n   })\n \n exports.setLastSeen = functions.auth\n-  .\n\\ No newline at end of file\n+  .user()\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637443274184,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -92,7 +92,4 @@\n         avatar: newUser.photoURL,\n         uniqueID: newUser.uid,\n     });\n   })\n-\n-exports.setLastSeen = functions.auth\n-  .user()\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1637443304083,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -70,26 +70,29 @@\n     const freelancerProjectReference = context.params.projectID;\n     const clientProjectData = snapshot.val();\n     return firebaseAdmin\n       .database()\n-      .ref(clientProjectData.clientUID + \"/myProjects/\" + clientProjectData.clientProjectReference)\n+      .ref(\n+        clientProjectData.clientUID +\n+          \"/myProjects/\" +\n+          clientProjectData.clientProjectReference\n+      )\n       .update({\n         ...clientProjectData,\n-        requestStatus: 'Ongoing',\n+        requestStatus: \"Ongoing\",\n         freelancerProjectReference,\n       });\n   });\n \n-exports.registerNewUser = functions.auth\n-  .user().onCreate(newUser => {\n-    firebaseAdmin\n+exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n+  firebaseAdmin\n     .firestore()\n     .doc(\"users/\" + newUser.uid)\n     .set({\n-        displayName: newUser.displayName,\n-        email: newUser.email,\n-        emailVerified: newUser.emailVerified,\n-        joined: newUser.metadata.creationTime,\n-        avatar: newUser.photoURL,\n-        uniqueID: newUser.uid,\n+      displayName: newUser.displayName,\n+      email: newUser.email,\n+      emailVerified: newUser.emailVerified,\n+      joined: newUser.metadata.creationTime,\n+      avatar: newUser.photoURL,\n+      uniqueID: newUser.uid,\n     });\n-  })\n+});\n"
+                }
+            ],
+            "date": 1637441450346,
+            "name": "Commit-0",
+            "content": "import * as functions from \"firebase-functions\";\n\nimport firebaseAdmin = require(\"firebase-admin\");\n\nfirebaseAdmin.initializeApp();\n\nexports.addFreelancerRole = functions.firestore\n  .document(\"/newFreelancer/addNew\")\n  .onUpdate((snap, context) => {\n    const userUID = snap.after.data().userUID;\n    const category = snap.after.data().category;\n    const hiveName = snap.after.data().hiveName;\n    const skill = snap.after.data().skill;\n\n    firebaseAdmin\n      .auth()\n      .setCustomUserClaims(userUID, {\n        freelancer: true,\n      })\n      .catch((error: any) => {\n        return error;\n      });\n    return firebaseAdmin\n      .auth()\n      .getUser(userUID)\n      .then((user) => {\n        firebaseAdmin\n          .firestore()\n          .doc(\"freelancers/\" + user.uid)\n          .set({\n            about: \"I am a \" + skill + \".\",\n            bannerImageURL:\n              \"gs://halibee.appspot.com/images/defaultImages/banner-placeholder.png\",\n            cardImageURL:\n              \"gs://halibee.appspot.com/images/defaultImages/profile_placeholder.png\",\n            category,\n            description: \"I am a \" + skill + \".\",\n            displayName: user.displayName,\n            hiveName,\n            projects: 0,\n            rating: 0,\n            skill,\n            uniqueID: user.uid,\n          });\n      });\n  });\n\nexports.createHiveRequest = functions.database\n  .ref(\"{uid}/myProjects/{projectID}\")\n  .onCreate((snapshot, context) => {\n    const clientProjectReference = context.params.projectID;\n    const hireRequestData = snapshot.val();\n    return firebaseAdmin\n      .database()\n      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n      .push({\n        ...hireRequestData,\n        clientProjectReference,\n      })\n      .then((hireRequestReference) => {\n        hireRequestReference.ref.update({\n          hireRequestReference: hireRequestReference.key,\n        });\n      });\n  });\n\nexports.createClientProject = functions.database\n  .ref(\"{uid}/clientProjects/{projectID}\")\n  .onCreate((snapshot, context) => {\n    const freelancerProjectReference = context.params.projectID;\n    const clientProjectData = snapshot.val();\n    return firebaseAdmin\n      .database()\n      .ref(clientProjectData.clientUID + \"/myProjects/\" + clientProjectData.clientProjectReference)\n      .update({\n        ...clientProjectData,\n        requestStatus: 'Ongoing',\n        freelancerProjectReference,\n      });\n  });\n"
+        }
+    ]
+}
