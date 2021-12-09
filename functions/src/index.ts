@@ -101,10 +101,11 @@ exports.updateReviews = functions.database
   .ref("{uid}/completedProjects/")
   .onUpdate((snapshot, context) => {
     const newlyAdded = Object.values(snapshot.after.val());
-    const totalCompletedProjects = newlyAdded.filter((project: any) =>
+    const completedProjects = newlyAdded.filter((project: any) =>
     project.freelancerUID == context.params.uid
-  ).length;
-    const reviewed = newlyAdded.filter((project: any) =>
+  );
+  const totalCompletedProjects = completedProjects.length;
+    const reviewed = completedProjects.filter((project: any) =>
       project.hasOwnProperty("review")
     );
 
@@ -134,22 +135,28 @@ exports.updateReviews = functions.database
     }
 
 
-    var average = (sum / totalReviews).toFixed(0);
+    var average = sum / totalReviews;
 
-    const fiveStarPercentage = ((fiveStarReviews / totalReviews) * 100).toFixed(0)+"%";
-    const fourStarPercentage = ((fourStarReviews / totalReviews) * 100).toFixed(0)+"%";
-    const threeStarPercentage = ((threeStarReviews / totalReviews) * 100).toFixed(0)+"%";
-    const twoStarPercentage = ((twoStarReviews / totalReviews) * 100).toFixed(0)+"%";
-    const oneStarPercentage = ((oneStarReviews / totalReviews) * 100).toFixed(0)+"%";
+    const five = (fiveStarReviews / totalReviews) * 100;
+    const four = (fourStarReviews / totalReviews) * 100;
+    const three = (threeStarReviews / totalReviews) * 100;
+    const two = (twoStarReviews / totalReviews) * 100;
+    const one = (oneStarReviews / totalReviews) * 100;
+
+    const fiveStarPercentage = five || 0;
+    const fourStarPercentage = four || 0;
+    const threeStarPercentage = three || 0;
+    const twoStarPercentage = two || 0;
+    const oneStarPercentage = one || 0;
 
     firebaseAdmin.firestore().doc("freelancers/"+context.params.uid).update({
       projects: totalCompletedProjects,
       rating: average,
       totalReviews,
-      fiveStarPercentage,
-      fourStarPercentage,
-      threeStarPercentage,
-      twoStarPercentage,
-      oneStarPercentage,
+      fiveStarPercentage: (fiveStarPercentage).toFixed(0)+"%" ,
+      fourStarPercentage: (fourStarPercentage).toFixed(0)+"%" ,
+      threeStarPercentage: (threeStarPercentage).toFixed(0)+"%",
+      twoStarPercentage: (twoStarPercentage).toFixed(0)+"%",
+      oneStarPercentage: (oneStarPercentage).toFixed(0)+"%",
     });
   });
