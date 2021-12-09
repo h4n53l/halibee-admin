@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 33,
+            "activePatchIndex": 96,
             "patches": [
                 {
                     "date": 1637441450346,
@@ -140,6 +140,258 @@
                 {
                     "date": 1637443304083,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -70,26 +70,29 @@\n     const freelancerProjectReference = context.params.projectID;\n     const clientProjectData = snapshot.val();\n     return firebaseAdmin\n       .database()\n-      .ref(clientProjectData.clientUID + \"/myProjects/\" + clientProjectData.clientProjectReference)\n+      .ref(\n+        clientProjectData.clientUID +\n+          \"/myProjects/\" +\n+          clientProjectData.clientProjectReference\n+      )\n       .update({\n         ...clientProjectData,\n-        requestStatus: 'Ongoing',\n+        requestStatus: \"Ongoing\",\n         freelancerProjectReference,\n       });\n   });\n \n-exports.registerNewUser = functions.auth\n-  .user().onCreate(newUser => {\n-    firebaseAdmin\n+exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n+  firebaseAdmin\n     .firestore()\n     .doc(\"users/\" + newUser.uid)\n     .set({\n-        displayName: newUser.displayName,\n-        email: newUser.email,\n-        emailVerified: newUser.emailVerified,\n-        joined: newUser.metadata.creationTime,\n-        avatar: newUser.photoURL,\n-        uniqueID: newUser.uid,\n+      displayName: newUser.displayName,\n+      email: newUser.email,\n+      emailVerified: newUser.emailVerified,\n+      joined: newUser.metadata.creationTime,\n+      avatar: newUser.photoURL,\n+      uniqueID: newUser.uid,\n     });\n-  })\n+});\n"
+                },
+                {
+                    "date": 1637701974796,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,8 +4,9 @@\n \n firebaseAdmin.initializeApp();\n \n exports.addFreelancerRole = functions.firestore\n+\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n     const category = snap.after.data().category;\n"
+                },
+                {
+                    "date": 1637702023247,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,99 @@\n+import * as functions from \"firebase-functions\";\n+\n+import firebaseAdmin = require(\"firebase-admin\");\n+\n+firebaseAdmin.initializeApp();\n+\n+exports.addFreelancerRole = functions.firestore\n+\n+  .document(\"/newFreelancer/addNew\")\n+  .onUpdate((snap, context) => {\n+    const userUID = snap.after.data().userUID;\n+    const category = snap.after.data().category;\n+    const hiveName = snap.after.data().hiveName;\n+    const skill = snap.after.data().skill;\n+\n+    firebaseAdmin\n+      .auth()\n+      .setCustomUserClaims(userUID, {\n+        freelancer: true,\n+      })\n+      .catch((error: any) => {\n+        return error;\n+      });\n+    return firebaseAdmin\n+      .auth()\n+      .getUser(userUID)\n+      .then((user) => {\n+        firebaseAdmin\n+          .firestore()\n+          .doc(\"freelancers/\" + user.uid)\n+          .set({\n+            about: \"I am a \" + skill + \".\",\n+            bannerImageURL:\n+              \"gs://halibee.appspot.com/images/defaultImages/banner-placeholder.png\",\n+            cardImageURL:\n+              \"gs://halibee.appspot.com/images/defaultImages/profile_placeholder.png\",\n+            category,\n+            description: \"I am a \" + skill + \".\",\n+            displayName: user.displayName,\n+            hiveName,\n+            projects: 0,\n+            rating: 0,\n+            skill,\n+            uniqueID: user.uid,\n+          });\n+      });\n+  });\n+\n+exports.createHiveRequest = functions.database\n+  .ref(\"{uid}/myProjects/{projectID}\")\n+  .onCreate((snapshot, context) => {\n+    const clientProjectReference = context.params.projectID;\n+    const hireRequestData = snapshot.val();\n+    return firebaseAdmin\n+      .database()\n+      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n+      .push({\n+        ...hireRequestData,\n+        clientProjectReference,\n+      })\n+      .then((hireRequestReference) => {\n+        hireRequestReference.ref.update({\n+          hireRequestReference: hireRequestReference.key,\n+        });\n+      });\n+  });\n+\n+exports.createClientProject = functions.database\n+  .ref(\"{uid}/clientProjects/{projectID}\")\n+  .onCreate((snapshot, context) => {\n+    const freelancerProjectReference = context.params.projectID;\n+    const clientProjectData = snapshot.val();\n+    return firebaseAdmin\n+      .database()\n+      .ref(\n+        clientProjectData.clientUID +\n+          \"/myProjects/\" +\n+          clientProjectData.clientProjectReference\n+      )\n+      .update({\n+        ...clientProjectData,\n+        requestStatus: \"Ongoing\",\n+        freelancerProjectReference,\n+      });\n+  });\n+\n+exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n+  firebaseAdmin\n+    .firestore()\n+    .doc(\"users/\" + newUser.uid)\n+    .set({\n+      displayName: newUser.displayName,\n+      email: newUser.email,\n+      emailVerified: newUser.emailVerified,\n+      joined: newUser.metadata.creationTime,\n+      avatar: newUser.photoURL,\n+      uniqueID: newUser.uid,\n+    });\n+});\n"
+                },
+                {
+                    "date": 1637702038096,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,109 +3,10 @@\n import firebaseAdmin = require(\"firebase-admin\");\n \n firebaseAdmin.initializeApp();\n \n-exports.addFreelancerRole = functions.firestore\n \n-  .document(\"/newFreelancer/addNew\")\n-  .onUpdate((snap, context) => {\n-    const userUID = snap.after.data().userUID;\n-    const category = snap.after.data().category;\n-    const hiveName = snap.after.data().hiveName;\n-    const skill = snap.after.data().skill;\n-\n-    firebaseAdmin\n-      .auth()\n-      .setCustomUserClaims(userUID, {\n-        freelancer: true,\n-      })\n-      .catch((error: any) => {\n-        return error;\n-      });\n-    return firebaseAdmin\n-      .auth()\n-      .getUser(userUID)\n-      .then((user) => {\n-        firebaseAdmin\n-          .firestore()\n-          .doc(\"freelancers/\" + user.uid)\n-          .set({\n-            about: \"I am a \" + skill + \".\",\n-            bannerImageURL:\n-              \"gs://halibee.appspot.com/images/defaultImages/banner-placeholder.png\",\n-            cardImageURL:\n-              \"gs://halibee.appspot.com/images/defaultImages/profile_placeholder.png\",\n-            category,\n-            description: \"I am a \" + skill + \".\",\n-            displayName: user.displayName,\n-            hiveName,\n-            projects: 0,\n-            rating: 0,\n-            skill,\n-            uniqueID: user.uid,\n-          });\n-      });\n-  });\n-\n-exports.createHiveRequest = functions.database\n-  .ref(\"{uid}/myProjects/{projectID}\")\n-  .onCreate((snapshot, context) => {\n-    const clientProjectReference = context.params.projectID;\n-    const hireRequestData = snapshot.val();\n-    return firebaseAdmin\n-      .database()\n-      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n-      .push({\n-        ...hireRequestData,\n-        clientProjectReference,\n-      })\n-      .then((hireRequestReference) => {\n-        hireRequestReference.ref.update({\n-          hireRequestReference: hireRequestReference.key,\n-        });\n-      });\n-  });\n-\n-exports.createClientProject = functions.database\n-  .ref(\"{uid}/clientProjects/{projectID}\")\n-  .onCreate((snapshot, context) => {\n-    const freelancerProjectReference = context.params.projectID;\n-    const clientProjectData = snapshot.val();\n-    return firebaseAdmin\n-      .database()\n-      .ref(\n-        clientProjectData.clientUID +\n-          \"/myProjects/\" +\n-          clientProjectData.clientProjectReference\n-      )\n-      .update({\n-        ...clientProjectData,\n-        requestStatus: \"Ongoing\",\n-        freelancerProjectReference,\n-      });\n-  });\n-\n-exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n-  firebaseAdmin\n-    .firestore()\n-    .doc(\"users/\" + newUser.uid)\n-    .set({\n-      displayName: newUser.displayName,\n-      email: newUser.email,\n-      emailVerified: newUser.emailVerified,\n-      joined: newUser.metadata.creationTime,\n-      avatar: newUser.photoURL,\n-      uniqueID: newUser.uid,\n-    });\n-});\n-import * as functions from \"firebase-functions\";\n-\n-import firebaseAdmin = require(\"firebase-admin\");\n-\n-firebaseAdmin.initializeApp();\n-\n exports.addFreelancerRole = functions.firestore\n-\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n     const category = snap.after.data().category;\n"
+                },
+                {
+                    "date": 1637702043302,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,10 +2,10 @@\n \n import firebaseAdmin = require(\"firebase-admin\");\n \n firebaseAdmin.initializeApp();\n+auth\n \n-\n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n"
+                },
+                {
+                    "date": 1637702048843,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,9 +2,9 @@\n \n import firebaseAdmin = require(\"firebase-admin\");\n \n firebaseAdmin.initializeApp();\n-auth\n+auth = firebaseAdmin.\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702055328,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,9 +2,9 @@\n \n import firebaseAdmin = require(\"firebase-admin\");\n \n firebaseAdmin.initializeApp();\n-auth = firebaseAdmin.\n+auth = firebaseAdmin.auth()\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702061296,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,9 +2,10 @@\n \n import firebaseAdmin = require(\"firebase-admin\");\n \n firebaseAdmin.initializeApp();\n-auth = firebaseAdmin.auth()\n+auth = firebaseAdmin.auth();\n+fir\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702068836,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,9 +3,9 @@\n import firebaseAdmin = require(\"firebase-admin\");\n \n firebaseAdmin.initializeApp();\n auth = firebaseAdmin.auth();\n-fir\n+firestore = \n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702075776,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,9 +3,9 @@\n import firebaseAdmin = require(\"firebase-admin\");\n \n firebaseAdmin.initializeApp();\n auth = firebaseAdmin.auth();\n-firestore = \n+firestore = fireb\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702081620,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,9 +3,9 @@\n import firebaseAdmin = require(\"firebase-admin\");\n \n firebaseAdmin.initializeApp();\n auth = firebaseAdmin.auth();\n-firestore = fireb\n+firestore = firebaseAdmin.fi\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702088353,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,9 +3,10 @@\n import firebaseAdmin = require(\"firebase-admin\");\n \n firebaseAdmin.initializeApp();\n auth = firebaseAdmin.auth();\n-firestore = firebaseAdmin.fi\n+firestore = firebaseAdmin.firestore();\n+rt\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702096338,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,9 +4,9 @@\n \n firebaseAdmin.initializeApp();\n auth = firebaseAdmin.auth();\n firestore = firebaseAdmin.firestore();\n-rt\n+rtdb = \n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702105592,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,9 +4,9 @@\n \n firebaseAdmin.initializeApp();\n auth = firebaseAdmin.auth();\n firestore = firebaseAdmin.firestore();\n-rtdb = \n+rtdb = fire\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702110845,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,9 +4,9 @@\n \n firebaseAdmin.initializeApp();\n auth = firebaseAdmin.auth();\n firestore = firebaseAdmin.firestore();\n-rtdb = fire\n+rtdb = firebaseAdmin.d\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702121848,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,9 +4,9 @@\n \n firebaseAdmin.initializeApp();\n auth = firebaseAdmin.auth();\n firestore = firebaseAdmin.firestore();\n-rtdb = firebaseAdmin.d\n+da = firebaseAdmin.database();\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702136336,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,9 +4,9 @@\n \n firebaseAdmin.initializeApp();\n auth = firebaseAdmin.auth();\n firestore = firebaseAdmin.firestore();\n-da = firebaseAdmin.database();\n+database = firebaseAdmin.database();\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n@@ -15,9 +15,9 @@\n     const hiveName = snap.after.data().hiveName;\n     const skill = snap.after.data().skill;\n \n     firebaseAdmin\n-      .auth()\n+      .auth\n       .setCustomUserClaims(userUID, {\n         freelancer: true,\n       })\n       .catch((error: any) => {\n"
+                },
+                {
+                    "date": 1637702143261,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -14,10 +14,9 @@\n     const category = snap.after.data().category;\n     const hiveName = snap.after.data().hiveName;\n     const skill = snap.after.data().skill;\n \n-    firebaseAdmin\n-      .auth\n+    auth\n       .setCustomUserClaims(userUID, {\n         freelancer: true,\n       })\n       .catch((error: any) => {\n"
+                },
+                {
+                    "date": 1637702163646,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,11 +2,11 @@\n \n import firebaseAdmin = require(\"firebase-admin\");\n \n firebaseAdmin.initializeApp();\n-auth = firebaseAdmin.auth();\n-firestore = firebaseAdmin.firestore();\n-database = firebaseAdmin.database();\n+const auth = firebaseAdmin.auth();\n+const firestore = firebaseAdmin.firestore();\n+const database = firebaseAdmin.database();\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n"
+                },
+                {
+                    "date": 1637702172391,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -26,9 +26,9 @@\n       .auth()\n       .getUser(userUID)\n       .then((user) => {\n         firebaseAdmin\n-          .firestore()\n+          .firestore\n           .doc(\"freelancers/\" + user.uid)\n           .set({\n             about: \"I am a \" + skill + \".\",\n             bannerImageURL:\n"
+                },
+                {
+                    "date": 1637702192195,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -25,10 +25,9 @@\n     return firebaseAdmin\n       .auth()\n       .getUser(userUID)\n       .then((user) => {\n-        firebaseAdmin\n-          .firestore\n+        firestore\n           .doc(\"freelancers/\" + user.uid)\n           .set({\n             about: \"I am a \" + skill + \".\",\n             bannerImageURL:\n@@ -51,10 +50,9 @@\n   .ref(\"{uid}/myProjects/{projectID}\")\n   .onCreate((snapshot, context) => {\n     const clientProjectReference = context.params.projectID;\n     const hireRequestData = snapshot.val();\n-    return firebaseAdmin\n-      .database()\n+    return database()\n       .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n       .push({\n         ...hireRequestData,\n         clientProjectReference,\n"
+                },
+                {
+                    "date": 1637702204215,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -50,9 +50,9 @@\n   .ref(\"{uid}/myProjects/{projectID}\")\n   .onCreate((snapshot, context) => {\n     const clientProjectReference = context.params.projectID;\n     const hireRequestData = snapshot.val();\n-    return database()\n+    return database\n       .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n       .push({\n         ...hireRequestData,\n         clientProjectReference,\n@@ -68,10 +68,9 @@\n   .ref(\"{uid}/clientProjects/{projectID}\")\n   .onCreate((snapshot, context) => {\n     const freelancerProjectReference = context.params.projectID;\n     const clientProjectData = snapshot.val();\n-    return firebaseAdmin\n-      .database()\n+    return database()\n       .ref(\n         clientProjectData.clientUID +\n           \"/myProjects/\" +\n           clientProjectData.clientProjectReference\n"
+                },
+                {
+                    "date": 1637702215411,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -68,9 +68,9 @@\n   .ref(\"{uid}/clientProjects/{projectID}\")\n   .onCreate((snapshot, context) => {\n     const freelancerProjectReference = context.params.projectID;\n     const clientProjectData = snapshot.val();\n-    return database()\n+    return database\n       .ref(\n         clientProjectData.clientUID +\n           \"/myProjects/\" +\n           clientProjectData.clientProjectReference\n@@ -82,10 +82,9 @@\n       });\n   });\n \n exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n-  firebaseAdmin\n-    .firestore()\n+  firestore()\n     .doc(\"users/\" + newUser.uid)\n     .set({\n       displayName: newUser.displayName,\n       email: newUser.email,\n"
+                },
+                {
+                    "date": 1637702423142,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -22,9 +22,9 @@\n       .catch((error: any) => {\n         return error;\n       });\n     return firebaseAdmin\n-      .auth()\n+      .auth\n       .getUser(userUID)\n       .then((user) => {\n         firestore\n           .doc(\"freelancers/\" + user.uid)\n@@ -82,9 +82,9 @@\n       });\n   });\n \n exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n-  firestore()\n+  firestore\n     .doc(\"users/\" + newUser.uid)\n     .set({\n       displayName: newUser.displayName,\n       email: newUser.email,\n"
+                },
+                {
+                    "date": 1637702465119,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -14,17 +14,17 @@\n     const category = snap.after.data().category;\n     const hiveName = snap.after.data().hiveName;\n     const skill = snap.after.data().skill;\n \n+    \n     auth\n       .setCustomUserClaims(userUID, {\n         freelancer: true,\n       })\n       .catch((error: any) => {\n         return error;\n       });\n-    return firebaseAdmin\n-      .auth\n+    return auth\n       .getUser(userUID)\n       .then((user) => {\n         firestore\n           .doc(\"freelancers/\" + user.uid)\n"
+                },
+                {
+                    "date": 1637702471194,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -14,9 +14,9 @@\n     const category = snap.after.data().category;\n     const hiveName = snap.after.data().hiveName;\n     const skill = snap.after.data().skill;\n \n-    \n+    fire\n     auth\n       .setCustomUserClaims(userUID, {\n         freelancer: true,\n       })\n"
+                },
+                {
+                    "date": 1637702485458,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -14,9 +14,15 @@\n     const category = snap.after.data().category;\n     const hiveName = snap.after.data().hiveName;\n     const skill = snap.after.data().skill;\n \n-    fire\n+    firestore.getDocs(\n+          query(collection\n+              (firestore, \"freelancers\"),\n+              where(\"displayName\", \"==\", username),\n+              limit(1)))\n+      setUserInfo(response.docs[0]['_document'].data.value.mapValue.fields)\n+    }\n     auth\n       .setCustomUserClaims(userUID, {\n         freelancer: true,\n       })\n"
+                },
+                {
+                    "date": 1637702505557,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -14,15 +14,9 @@\n     const category = snap.after.data().category;\n     const hiveName = snap.after.data().hiveName;\n     const skill = snap.after.data().skill;\n \n-    firestore.getDocs(\n-          query(collection\n-              (firestore, \"freelancers\"),\n-              where(\"displayName\", \"==\", username),\n-              limit(1)))\n-      setUserInfo(response.docs[0]['_document'].data.value.mapValue.fields)\n-    }\n+\n     auth\n       .setCustomUserClaims(userUID, {\n         freelancer: true,\n       })\n"
+                },
+                {
+                    "date": 1637702550718,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -12,9 +12,9 @@\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n     const category = snap.after.data().category;\n     const hiveName = snap.after.data().hiveName;\n-    const skill = snap.after.data().skill;\n+    const skill = fire\n \n \n     auth\n       .setCustomUserClaims(userUID, {\n"
+                },
+                {
+                    "date": 1637702558077,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -12,9 +12,9 @@\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n     const category = snap.after.data().category;\n     const hiveName = snap.after.data().hiveName;\n-    const skill = fire\n+    const skill = snap.after.data().skill;\n \n \n     auth\n       .setCustomUserClaims(userUID, {\n"
+                },
+                {
+                    "date": 1637702563702,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,8 +6,10 @@\n const auth = firebaseAdmin.auth();\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n+\n+\n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n"
+                },
+                {
+                    "date": 1637702750811,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,10 +6,17 @@\n const auth = firebaseAdmin.auth();\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n+async function fetchUserData() {\n+  const response = await getDocs(\n+      query(freelancerApplications\n+          (firestore, \"freelancers\"),\n+          where(\"displayName\", \"==\", username),\n+          limit(1)))\n+  setUserInfo(response.docs[0]['_document'].data.value.mapValue.fields)\n+}\n \n-\n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n"
+                },
+                {
+                    "date": 1637702782797,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,14 +7,9 @@\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n async function fetchUserData() {\n-  const response = await getDocs(\n-      query(freelancerApplications\n-          (firestore, \"freelancers\"),\n-          where(\"displayName\", \"==\", username),\n-          limit(1)))\n-  setUserInfo(response.docs[0]['_document'].data.value.mapValue.fields)\n+  const response = \n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637702794120,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,10 +6,10 @@\n const auth = firebaseAdmin.auth();\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n-async function fetchUserData() {\n-  const response = \n+function fetchUserData() {\n+  fire\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637702799744,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,9 +7,9 @@\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n function fetchUserData() {\n-  fire\n+  firestore.query\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637702813589,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,101 @@\n+import * as functions from \"firebase-functions\";\n+\n+import firebaseAdmin = require(\"firebase-admin\");\n+\n+firebaseAdmin.initializeApp();\n+const auth = firebaseAdmin.auth();\n+const firestore = firebaseAdmin.firestore();\n+const database = firebaseAdmin.database();\n+\n+function fetchUserData() {\n+  firestore\n+  .do\n+}\n+\n+exports.addFreelancerRole = functions.firestore\n+  .document(\"/newFreelancer/addNew\")\n+  .onUpdate((snap, context) => {\n+    const userUID = snap.after.data().userUID;\n+    const category = snap.after.data().category;\n+    const hiveName = snap.after.data().hiveName;\n+    const skill = snap.after.data().skill;\n+\n+\n+    auth\n+      .setCustomUserClaims(userUID, {\n+        freelancer: true,\n+      })\n+      .catch((error: any) => {\n+        return error;\n+      });\n+    return auth\n+      .getUser(userUID)\n+      .then((user) => {\n+        firestore\n+          .doc(\"freelancers/\" + user.uid)\n+          .set({\n+            about: \"I am a \" + skill + \".\",\n+            bannerImageURL:\n+              \"gs://halibee.appspot.com/images/defaultImages/banner-placeholder.png\",\n+            cardImageURL:\n+              \"gs://halibee.appspot.com/images/defaultImages/profile_placeholder.png\",\n+            category,\n+            description: \"I am a \" + skill + \".\",\n+            displayName: user.displayName,\n+            hiveName,\n+            projects: 0,\n+            rating: 0,\n+            skill,\n+            uniqueID: user.uid,\n+          });\n+      });\n+  });\n+\n+exports.createHiveRequest = functions.database\n+  .ref(\"{uid}/myProjects/{projectID}\")\n+  .onCreate((snapshot, context) => {\n+    const clientProjectReference = context.params.projectID;\n+    const hireRequestData = snapshot.val();\n+    return database\n+      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n+      .push({\n+        ...hireRequestData,\n+        clientProjectReference,\n+      })\n+      .then((hireRequestReference) => {\n+        hireRequestReference.ref.update({\n+          hireRequestReference: hireRequestReference.key,\n+        });\n+      });\n+  });\n+\n+exports.createClientProject = functions.database\n+  .ref(\"{uid}/clientProjects/{projectID}\")\n+  .onCreate((snapshot, context) => {\n+    const freelancerProjectReference = context.params.projectID;\n+    const clientProjectData = snapshot.val();\n+    return database\n+      .ref(\n+        clientProjectData.clientUID +\n+          \"/myProjects/\" +\n+          clientProjectData.clientProjectReference\n+      )\n+      .update({\n+        ...clientProjectData,\n+        requestStatus: \"Ongoing\",\n+        freelancerProjectReference,\n+      });\n+  });\n+\n+exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n+  firestore\n+    .doc(\"users/\" + newUser.uid)\n+    .set({\n+      displayName: newUser.displayName,\n+      email: newUser.email,\n+      emailVerified: newUser.emailVerified,\n+      joined: newUser.metadata.creationTime,\n+      avatar: newUser.photoURL,\n+      uniqueID: newUser.uid,\n+    });\n+});\n"
+                },
+                {
+                    "date": 1637702821854,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -8,9 +8,9 @@\n const database = firebaseAdmin.database();\n \n function fetchUserData() {\n   firestore\n-  .do\n+  .document\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n@@ -98,104 +98,4 @@\n       avatar: newUser.photoURL,\n       uniqueID: newUser.uid,\n     });\n });\n-import * as functions from \"firebase-functions\";\n-\n-import firebaseAdmin = require(\"firebase-admin\");\n-\n-firebaseAdmin.initializeApp();\n-const auth = firebaseAdmin.auth();\n-const firestore = firebaseAdmin.firestore();\n-const database = firebaseAdmin.database();\n-\n-function fetchUserData() {\n-  firestore.query\n-}\n-\n-exports.addFreelancerRole = functions.firestore\n-  .document(\"/newFreelancer/addNew\")\n-  .onUpdate((snap, context) => {\n-    const userUID = snap.after.data().userUID;\n-    const category = snap.after.data().category;\n-    const hiveName = snap.after.data().hiveName;\n-    const skill = snap.after.data().skill;\n-\n-\n-    auth\n-      .setCustomUserClaims(userUID, {\n-        freelancer: true,\n-      })\n-      .catch((error: any) => {\n-        return error;\n-      });\n-    return auth\n-      .getUser(userUID)\n-      .then((user) => {\n-        firestore\n-          .doc(\"freelancers/\" + user.uid)\n-          .set({\n-            about: \"I am a \" + skill + \".\",\n-            bannerImageURL:\n-              \"gs://halibee.appspot.com/images/defaultImages/banner-placeholder.png\",\n-            cardImageURL:\n-              \"gs://halibee.appspot.com/images/defaultImages/profile_placeholder.png\",\n-            category,\n-            description: \"I am a \" + skill + \".\",\n-            displayName: user.displayName,\n-            hiveName,\n-            projects: 0,\n-            rating: 0,\n-            skill,\n-            uniqueID: user.uid,\n-          });\n-      });\n-  });\n-\n-exports.createHiveRequest = functions.database\n-  .ref(\"{uid}/myProjects/{projectID}\")\n-  .onCreate((snapshot, context) => {\n-    const clientProjectReference = context.params.projectID;\n-    const hireRequestData = snapshot.val();\n-    return database\n-      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n-      .push({\n-        ...hireRequestData,\n-        clientProjectReference,\n-      })\n-      .then((hireRequestReference) => {\n-        hireRequestReference.ref.update({\n-          hireRequestReference: hireRequestReference.key,\n-        });\n-      });\n-  });\n-\n-exports.createClientProject = functions.database\n-  .ref(\"{uid}/clientProjects/{projectID}\")\n-  .onCreate((snapshot, context) => {\n-    const freelancerProjectReference = context.params.projectID;\n-    const clientProjectData = snapshot.val();\n-    return database\n-      .ref(\n-        clientProjectData.clientUID +\n-          \"/myProjects/\" +\n-          clientProjectData.clientProjectReference\n-      )\n-      .update({\n-        ...clientProjectData,\n-        requestStatus: \"Ongoing\",\n-        freelancerProjectReference,\n-      });\n-  });\n-\n-exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n-  firestore\n-    .doc(\"users/\" + newUser.uid)\n-    .set({\n-      displayName: newUser.displayName,\n-      email: newUser.email,\n-      emailVerified: newUser.emailVerified,\n-      joined: newUser.metadata.creationTime,\n-      avatar: newUser.photoURL,\n-      uniqueID: newUser.uid,\n-    });\n-});\n"
+                },
+                {
+                    "date": 1637702844632,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -8,9 +8,9 @@\n const database = firebaseAdmin.database();\n \n function fetchUserData() {\n   firestore\n-  .document\n+  .doc()\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637702854888,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -8,9 +8,9 @@\n const database = firebaseAdmin.database();\n \n function fetchUserData() {\n   firestore\n-  .doc()\n+  .doc(\"\")\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637702877965,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,11 +6,11 @@\n const auth = firebaseAdmin.auth();\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n-function fetchUserData() {\n+function fetchUserData(ui) {\n   firestore\n-  .doc(\"\")\n+  .doc(\"freelancerApplications\")\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637702886690,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,11 +6,11 @@\n const auth = firebaseAdmin.auth();\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n-function fetchUserData(ui) {\n+function fetchUserData(uid) {\n   firestore\n-  .doc(\"freelancerApplications\")\n+  .doc(\"freelancerApplications\"+)\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637702919490,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,11 +6,11 @@\n const auth = firebaseAdmin.auth();\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n-function fetchUserData(uid) {\n+function fetchUserData(uid: string) {\n   firestore\n-  .doc(\"freelancerApplications\"+)\n+  .doc(\"freelancerApplications/\"+uid)\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637702930044,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,9 +7,9 @@\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n function fetchUserData(uid: string) {\n-  firestore\n+  return firestore\n   .doc(\"freelancerApplications/\"+uid)\n }\n \n exports.addFreelancerRole = functions.firestore\n"
+                },
+                {
+                    "date": 1637702967901,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -16,9 +16,9 @@\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n     const category = snap.after.data().category;\n-    const hiveName = snap.after.data().hiveName;\n+    const hiveName = fet.hiveName;\n     const skill = snap.after.data().skill;\n \n \n     auth\n"
+                },
+                {
+                    "date": 1637702988741,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,16 +9,17 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n+  .\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n     const category = snap.after.data().category;\n-    const hiveName = fet.hiveName;\n+    const hiveName = fetchUserData(userUID).hiveName;\n     const skill = snap.after.data().skill;\n \n \n     auth\n"
+                },
+                {
+                    "date": 1637702997573,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,9 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n-  .\n+  .get\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703052968,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,9 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n-  .get\n+  .w\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703059305,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,9 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n-  .w\n+  .ge\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703068400,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,9 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n-  .ge\n+  .get()\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703110985,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,9 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n-  .get()\n+  .data()\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703121961,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,9 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n-  .data()\n+  .data\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703128154,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,17 +9,16 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n-  .data\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n     const category = snap.after.data().category;\n-    const hiveName = fetchUserData(userUID).hiveName;\n+    const hiveName = fetchUserData(userUID).datahiveName;\n     const skill = snap.after.data().skill;\n \n \n     auth\n"
+                },
+                {
+                    "date": 1637703176659,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,16 +9,17 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n+  .g\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n   .onUpdate((snap, context) => {\n     const userUID = snap.after.data().userUID;\n     const category = snap.after.data().category;\n-    const hiveName = fetchUserData(userUID).datahiveName;\n+    const hiveName = fetchUserData(userUID).data().hiveName;\n     const skill = snap.after.data().skill;\n \n \n     auth\n"
+                },
+                {
+                    "date": 1637703186200,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,9 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n-  .g\n+  .get().d\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703197692,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,9 @@\n \n function fetchUserData(uid: string) {\n   return firestore\n   .doc(\"freelancerApplications/\"+uid)\n-  .get().d\n+  .get().then\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703203962,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,9 +7,9 @@\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n function fetchUserData(uid: string) {\n-  return firestore\n+  firestore\n   .doc(\"freelancerApplications/\"+uid)\n   .get().then\n }\n \n"
+                },
+                {
+                    "date": 1637703210257,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,10 @@\n \n function fetchUserData(uid: string) {\n   firestore\n   .doc(\"freelancerApplications/\"+uid)\n-  .get().then\n+  .get()\n+  .then\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703217931,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -10,9 +10,9 @@\n function fetchUserData(uid: string) {\n   firestore\n   .doc(\"freelancerApplications/\"+uid)\n   .get()\n-  .then\n+  .then(())\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703224043,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -10,9 +10,9 @@\n function fetchUserData(uid: string) {\n   firestore\n   .doc(\"freelancerApplications/\"+uid)\n   .get()\n-  .then(())\n+  .then((data))\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703230012,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -10,9 +10,9 @@\n function fetchUserData(uid: string) {\n   firestore\n   .doc(\"freelancerApplications/\"+uid)\n   .get()\n-  .then((data))\n+  .then((data) => {})\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703236842,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -10,9 +10,11 @@\n function fetchUserData(uid: string) {\n   firestore\n   .doc(\"freelancerApplications/\"+uid)\n   .get()\n-  .then((data) => {})\n+  .then((data) => {\n+    return data\n+  })\n }\n \n exports.addFreelancerRole = functions.firestore\n   .document(\"/newFreelancer/addNew\")\n"
+                },
+                {
+                    "date": 1637703270466,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,9 +6,9 @@\n const auth = firebaseAdmin.auth();\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n-function fetchUserData(uid: string) {\n+asyfunction fetchUserData(uid: string) {\n   firestore\n   .doc(\"freelancerApplications/\"+uid)\n   .get()\n   .then((data) => {\n"
+                },
+                {
+                    "date": 1637703280240,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,9 +7,9 @@\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n async function fetchUserData(uid: string) {\n-  firestore\n+  await firestore\n   .doc(\"freelancerApplications/\"+uid)\n   .get()\n   .then((data) => {\n     return data\n"
+                },
+                {
+                    "date": 1637703326042,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,9 +7,9 @@\n const firestore = firebaseAdmin.firestore();\n const database = firebaseAdmin.database();\n \n async function fetchUserData(uid: string) {\n-  const data\n+  const data = \n   await firestore\n   .doc(\"freelancerApplications/\"+uid)\n   .get()\n   .then((data) => {\n"
                 }
             ],
             "date": 1637441450346,

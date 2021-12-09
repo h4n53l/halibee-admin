@@ -1,0 +1,162 @@
+{
+    "sourceFile": "src/index.ts",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 36,
+            "patches": [
+                {
+                    "date": 1638984690005,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1638984704156,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -100,5 +100,5 @@\n       uniqueID: newUser.uid,\n     });\n });\n \n-\n+exports.\n"
+                },
+                {
+                    "date": 1638984711297,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -100,5 +100,5 @@\n       uniqueID: newUser.uid,\n     });\n });\n \n-exports.\n+exports.updateReviews\n"
+                },
+                {
+                    "date": 1638984755780,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -100,5 +100,5 @@\n       uniqueID: newUser.uid,\n     });\n });\n \n-exports.updateReviews\n+exports.updateReviews = fun\n"
+                },
+                {
+                    "date": 1638984767908,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -100,5 +100,5 @@\n       uniqueID: newUser.uid,\n     });\n });\n \n-exports.updateReviews = fun\n+exports.updateReviews = functions.auth.user().onUpdate\n"
+                },
+                {
+                    "date": 1638984773981,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -100,5 +100,5 @@\n       uniqueID: newUser.uid,\n     });\n });\n \n-exports.updateReviews = functions.auth.user().onUpdate\n+exports.updateReviews = functions.auth.user().onUpdate(())\n"
+                },
+                {
+                    "date": 1638984791065,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -100,5 +100,5 @@\n       uniqueID: newUser.uid,\n     });\n });\n \n-exports.updateReviews = functions.auth.user().onUpdate(())\n+exports.updateReviews = functions.da.onUpdate(())\n"
+                },
+                {
+                    "date": 1638984800715,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -100,5 +100,6 @@\n       uniqueID: newUser.uid,\n     });\n });\n \n-exports.updateReviews = functions.da.onUpdate(())\n+exports.updateReviews = functions.database\n+\n"
+                },
+                {
+                    "date": 1638984808875,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -101,5 +101,5 @@\n     });\n });\n \n exports.updateReviews = functions.database\n-\n+  .d\n"
+                },
+                {
+                    "date": 1638984815947,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -101,5 +101,5 @@\n     });\n });\n \n exports.updateReviews = functions.database\n-  .d\n+  .ref\n"
+                },
+                {
+                    "date": 1638984833630,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -101,5 +101,5 @@\n     });\n });\n \n exports.updateReviews = functions.database\n-  .ref\n+  .ref(\"{uid}/myProjects/{projectID}\")\n"
+                },
+                {
+                    "date": 1638984895092,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -102,4 +102,5 @@\n });\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/myProjects/{projectID}\")\n+  .\n"
+                },
+                {
+                    "date": 1638984975507,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,106 @@\n+import * as functions from \"firebase-functions\";\n+\n+import firebaseAdmin = require(\"firebase-admin\");\n+import { logger } from \"firebase-functions\";\n+\n+firebaseAdmin.initializeApp();\n+\n+exports.addFreelancerRole = functions.firestore\n+  .document(\"/freelancerApplications/{userUID}\")\n+  .onDelete((snap, context) => {\n+    logger.log(context.params.userUID);\n+    logger.log(snap.data());\n+    const userUID = context.params.userUID;\n+    const skillCategory = snap.data().skillCategory;\n+    const hiveName = snap.data().hiveName;\n+    const skill = snap.data().skill;\n+\n+    firebaseAdmin\n+      .auth()\n+      .setCustomUserClaims(userUID, {\n+        freelancer: true,\n+      })\n+      .catch((error: any) => {\n+        return error;\n+      });\n+    return firebaseAdmin\n+      .auth()\n+      .getUser(userUID)\n+      .then((user) => {\n+        firebaseAdmin\n+          .firestore()\n+          .doc(\"freelancers/\" + user.uid)\n+          .set({\n+            avatar: user.photoURL,\n+            about: \"I am a \" + skill + \".\",\n+            bannerImageURL:\n+              \"https://firebasestorage.googleapis.com/v0/b/halibee.appspot.com/o/images%2FdefaultImages%2Fbanner-placeholder.png?alt=media&token=6ec79b26-fb38-4e36-8fe7-bba9de7663f5\",\n+            cardImageURL: user.photoURL,\n+            category: skillCategory,\n+            description: \"I am a \" + skill + \".\",\n+            displayName: user.displayName,\n+            hiveName,\n+            projects: 0,\n+            rating: 0,\n+            skill,\n+            uniqueID: user.uid,\n+          });\n+      });\n+  });\n+\n+exports.createHiveRequest = functions.database\n+  .ref(\"{uid}/myProjects/{projectID}\")\n+  .onCreate((snapshot, context) => {\n+    const clientProjectReference = context.params.projectID;\n+    const hireRequestData = snapshot.val();\n+    return firebaseAdmin\n+      .database()\n+      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n+      .push({\n+        ...hireRequestData,\n+        clientProjectReference,\n+      })\n+      .then((hireRequestReference) => {\n+        hireRequestReference.ref.update({\n+          hireRequestReference: hireRequestReference.key,\n+        });\n+      });\n+  });\n+\n+\n+exports.createClientProject = functions.database\n+  .ref(\"{uid}/clientProjects/{projectID}\")\n+  .onCreate((snapshot, context) => {\n+    const freelancerProjectReference = context.params.projectID;\n+    const clientProjectData = snapshot.val();\n+    return firebaseAdmin\n+      .database()\n+      .ref(\n+        clientProjectData.clientUID +\n+          \"/myProjects/\" +\n+          clientProjectData.clientProjectReference\n+      )\n+      .update({\n+        ...clientProjectData,\n+        requestStatus: \"Ongoing\",\n+        freelancerProjectReference,\n+      });\n+  });\n+\n+exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n+  firebaseAdmin\n+    .firestore()\n+    .doc(\"users/\" + newUser.uid)\n+    .set({\n+      displayName: newUser.displayName,\n+      email: newUser.email,\n+      emailVerified: newUser.emailVerified,\n+      joined: newUser.metadata.creationTime,\n+      avatar: newUser.photoURL,\n+      uniqueID: newUser.uid,\n+    });\n+});\n+\n+exports.updateReviews = functions.database\n+  .ref(\"{uid}/myProjects/{projectID}\")\n+  .onUpdate()\n"
+                },
+                {
+                    "date": 1638984986986,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -101,112 +101,6 @@\n     });\n });\n \n exports.updateReviews = functions.database\n-  .ref(\"{uid}/myProjects/{projectID}\")\n+  .ref(\"{uid}/comProjects/{projectID}\")\n   .onUpdate()\n-import * as functions from \"firebase-functions\";\n-\n-import firebaseAdmin = require(\"firebase-admin\");\n-import { logger } from \"firebase-functions\";\n-\n-firebaseAdmin.initializeApp();\n-\n-exports.addFreelancerRole = functions.firestore\n-  .document(\"/freelancerApplications/{userUID}\")\n-  .onDelete((snap, context) => {\n-    logger.log(context.params.userUID);\n-    logger.log(snap.data());\n-    const userUID = context.params.userUID;\n-    const skillCategory = snap.data().skillCategory;\n-    const hiveName = snap.data().hiveName;\n-    const skill = snap.data().skill;\n-\n-    firebaseAdmin\n-      .auth()\n-      .setCustomUserClaims(userUID, {\n-        freelancer: true,\n-      })\n-      .catch((error: any) => {\n-        return error;\n-      });\n-    return firebaseAdmin\n-      .auth()\n-      .getUser(userUID)\n-      .then((user) => {\n-        firebaseAdmin\n-          .firestore()\n-          .doc(\"freelancers/\" + user.uid)\n-          .set({\n-            avatar: user.photoURL,\n-            about: \"I am a \" + skill + \".\",\n-            bannerImageURL:\n-              \"https://firebasestorage.googleapis.com/v0/b/halibee.appspot.com/o/images%2FdefaultImages%2Fbanner-placeholder.png?alt=media&token=6ec79b26-fb38-4e36-8fe7-bba9de7663f5\",\n-            cardImageURL: user.photoURL,\n-            category: skillCategory,\n-            description: \"I am a \" + skill + \".\",\n-            displayName: user.displayName,\n-            hiveName,\n-            projects: 0,\n-            rating: 0,\n-            skill,\n-            uniqueID: user.uid,\n-          });\n-      });\n-  });\n-\n-exports.createHiveRequest = functions.database\n-  .ref(\"{uid}/myProjects/{projectID}\")\n-  .onCreate((snapshot, context) => {\n-    const clientProjectReference = context.params.projectID;\n-    const hireRequestData = snapshot.val();\n-    return firebaseAdmin\n-      .database()\n-      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n-      .push({\n-        ...hireRequestData,\n-        clientProjectReference,\n-      })\n-      .then((hireRequestReference) => {\n-        hireRequestReference.ref.update({\n-          hireRequestReference: hireRequestReference.key,\n-        });\n-      });\n-  });\n-\n-\n-exports.createClientProject = functions.database\n-  .ref(\"{uid}/clientProjects/{projectID}\")\n-  .onCreate((snapshot, context) => {\n-    const freelancerProjectReference = context.params.projectID;\n-    const clientProjectData = snapshot.val();\n-    return firebaseAdmin\n-      .database()\n-      .ref(\n-        clientProjectData.clientUID +\n-          \"/myProjects/\" +\n-          clientProjectData.clientProjectReference\n-      )\n-      .update({\n-        ...clientProjectData,\n-        requestStatus: \"Ongoing\",\n-        freelancerProjectReference,\n-      });\n-  });\n-\n-exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n-  firebaseAdmin\n-    .firestore()\n-    .doc(\"users/\" + newUser.uid)\n-    .set({\n-      displayName: newUser.displayName,\n-      email: newUser.email,\n-      emailVerified: newUser.emailVerified,\n-      joined: newUser.metadata.creationTime,\n-      avatar: newUser.photoURL,\n-      uniqueID: newUser.uid,\n-    });\n-});\n-\n-exports.updateReviews = functions.database\n-  .ref(\"{uid}/myProjects/{projectID}\")\n-  .\n"
+                },
+                {
+                    "date": 1638985039334,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -101,6 +101,6 @@\n     });\n });\n \n exports.updateReviews = functions.database\n-  .ref(\"{uid}/comProjects/{projectID}\")\n+  .ref(\"{uid}/completedProjects/\")\n   .onUpdate()\n"
+                },
+                {
+                    "date": 1638985051655,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -101,6 +101,6 @@\n     });\n });\n \n exports.updateReviews = functions.database\n-  .ref(\"{uid}/completedProjects/\")\n-  .onUpdate()\n+  .ref(\"{uid}/completedProjects\")\n+  .onUpdate(())\n"
+                },
+                {
+                    "date": 1638985059448,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -102,5 +102,5 @@\n });\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n-  .onUpdate(())\n+  .onUpdate((snapshot))\n"
+                },
+                {
+                    "date": 1638985065491,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -102,5 +102,5 @@\n });\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n-  .onUpdate((snapshot))\n+  .onUpdate((snapshot, c))\n"
+                },
+                {
+                    "date": 1638985080560,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -102,5 +102,5 @@\n });\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n-  .onUpdate((snapshot, c))\n+  .onUpdate((snapshot, context) =)\n"
+                },
+                {
+                    "date": 1638985088987,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -102,5 +102,5 @@\n });\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n-  .onUpdate((snapshot, context) =)\n+  .onUpdate((snapshot, context) =>)\n"
+                },
+                {
+                    "date": 1638985577381,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -102,5 +102,7 @@\n });\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n-  .onUpdate((snapshot, context) =>)\n+  .onUpdate((snapshot, context) => {\n+    const \n+  })\n"
+                },
+                {
+                    "date": 1638985585673,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -103,6 +103,6 @@\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n   .onUpdate((snapshot, context) => {\n-    const \n+    const total\n   })\n"
+                },
+                {
+                    "date": 1638985592973,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -103,6 +103,6 @@\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n   .onUpdate((snapshot, context) => {\n-    const total\n+    const totalCompleted\n   })\n"
+                },
+                {
+                    "date": 1638985601411,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -103,6 +103,6 @@\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n   .onUpdate((snapshot, context) => {\n-    const totalCompleted\n+    const totalCompletedProjects = \n   })\n"
+                },
+                {
+                    "date": 1638985631349,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -103,6 +103,6 @@\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n   .onUpdate((snapshot, context) => {\n-    const totalCompletedProjects = \n+    const totalCompletedProjects = fr\n   })\n"
+                },
+                {
+                    "date": 1638985641318,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -103,6 +103,6 @@\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n   .onUpdate((snapshot, context) => {\n-    const totalCompletedProjects = fr\n+    const totalCompletedProjects = fi\n   })\n"
+                },
+                {
+                    "date": 1638985650299,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -103,6 +103,6 @@\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n   .onUpdate((snapshot, context) => {\n-    const totalCompletedProjects = fi\n+    const totalCompletedProjects = firebaseAdmin.da\n   })\n"
+                },
+                {
+                    "date": 1638985791062,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -103,6 +103,7 @@\n \n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n   .onUpdate((snapshot, context) => {\n-    const totalCompletedProjects = firebaseAdmin.da\n+    const totalCompletedProjects = firebaseAdmin.database()\n+    .ref\n   })\n"
+                },
+                {
+                    "date": 1638985805758,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -104,6 +104,6 @@\n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n   .onUpdate((snapshot, context) => {\n     const totalCompletedProjects = firebaseAdmin.database()\n-    .ref\n+    .ref(co)\n   })\n"
+                },
+                {
+                    "date": 1638985810936,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -104,6 +104,6 @@\n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n   .onUpdate((snapshot, context) => {\n     const totalCompletedProjects = firebaseAdmin.database()\n-    .ref(co)\n+    .ref(context.)\n   })\n"
+                },
+                {
+                    "date": 1638985819794,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -104,6 +104,6 @@\n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects\")\n   .onUpdate((snapshot, context) => {\n     const totalCompletedProjects = firebaseAdmin.database()\n-    .ref(context.)\n+    .ref(context.params.)\n   })\n"
+                },
+                {
+                    "date": 1638985899878,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -101,9 +101,9 @@\n     });\n });\n \n exports.updateReviews = functions.database\n-  .ref(\"{uid}/completedProjects\")\n+  .ref(\"{uid}/completedProjects/\")\n   .onUpdate((snapshot, context) => {\n     const totalCompletedProjects = firebaseAdmin.database()\n     .ref(context.params.)\n   })\n"
+                },
+                {
+                    "date": 1638985907654,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -101,9 +101,9 @@\n     });\n });\n \n exports.updateReviews = functions.database\n-  .ref(\"{uid}/completedProjects/\")\n+  .ref(\"{uid}/completedProjects/{projectID}\")\n   .onUpdate((snapshot, context) => {\n     const totalCompletedProjects = firebaseAdmin.database()\n-    .ref(context.params.)\n+    .ref(context.params.uid)\n   })\n"
+                },
+                {
+                    "date": 1638985915621,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -104,6 +104,6 @@\n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects/{projectID}\")\n   .onUpdate((snapshot, context) => {\n     const totalCompletedProjects = firebaseAdmin.database()\n-    .ref(context.params.uid)\n+    .ref(context.params.uid+/)\n   })\n"
+                },
+                {
+                    "date": 1638985923790,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -104,6 +104,6 @@\n exports.updateReviews = functions.database\n   .ref(\"{uid}/completedProjects/{projectID}\")\n   .onUpdate((snapshot, context) => {\n     const totalCompletedProjects = firebaseAdmin.database()\n-    .ref(context.params.uid+/)\n+    .ref(context.params.uid+\"/completedProjects\")\n   })\n"
+                },
+                {
+                    "date": 1638985945601,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -105,6 +105,6 @@\n   .ref(\"{uid}/completedProjects/{projectID}\")\n   .onUpdate((snapshot, context) => {\n     const totalCompletedProjects = firebaseAdmin.database()\n     .ref(context.params.uid+\"/completedProjects\")\n-    \n+    .\n   })\n"
+                },
+                {
+                    "date": 1638991683039,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,121 @@\n+import * as functions from \"firebase-functions\";\n+\n+import firebaseAdmin = require(\"firebase-admin\");\n+\n+firebaseAdmin.initializeApp();\n+\n+exports.addFreelancerRole = functions.firestore\n+  .document(\"/freelancerApplications/{userUID}\")\n+  .onDelete((snap, context) => {\n+    const userUID = context.params.userUID;\n+    const skillCategory = snap.data().skillCategory;\n+    const hiveName = snap.data().hiveName;\n+    const skill = snap.data().skill;\n+\n+    firebaseAdmin\n+      .auth()\n+      .setCustomUserClaims(userUID, {\n+        freelancer: true,\n+      })\n+      .catch((error: any) => {\n+        return error;\n+      });\n+    return firebaseAdmin\n+      .auth()\n+      .getUser(userUID)\n+      .then((user) => {\n+        firebaseAdmin\n+          .firestore()\n+          .doc(\"freelancers/\" + user.uid)\n+          .set({\n+            avatar: user.photoURL,\n+            about: \"I am a \" + skill + \".\",\n+            bannerImageURL:\n+              \"https://firebasestorage.googleapis.com/v0/b/halibee.appspot.com/o/images%2FdefaultImages%2Fbanner-placeholder.png?alt=media&token=6ec79b26-fb38-4e36-8fe7-bba9de7663f5\",\n+            cardImageURL: user.photoURL,\n+            category: skillCategory,\n+            description: \"I am a \" + skill + \".\",\n+            displayName: user.displayName,\n+            hiveName,\n+            projects: 0,\n+            rating: 0,\n+            skill,\n+            uniqueID: user.uid,\n+          });\n+      });\n+  });\n+\n+exports.createHiveRequest = functions.database\n+  .ref(\"{uid}/myProjects/{projectID}\")\n+  .onCreate((snapshot, context) => {\n+    const clientProjectReference = context.params.projectID;\n+    const hireRequestData = snapshot.val();\n+    return firebaseAdmin\n+      .database()\n+      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n+      .push({\n+        ...hireRequestData,\n+        clientProjectReference,\n+      })\n+      .then((hireRequestReference) => {\n+        hireRequestReference.ref.update({\n+          hireRequestReference: hireRequestReference.key,\n+        });\n+      });\n+  });\n+\n+\n+exports.createClientProject = functions.database\n+  .ref(\"{uid}/clientProjects/{projectID}\")\n+  .onCreate((snapshot, context) => {\n+    const freelancerProjectReference = context.params.projectID;\n+    const clientProjectData = snapshot.val();\n+    return firebaseAdmin\n+      .database()\n+      .ref(\n+        clientProjectData.clientUID +\n+          \"/myProjects/\" +\n+          clientProjectData.clientProjectReference\n+      )\n+      .update({\n+        ...clientProjectData,\n+        requestStatus: \"Ongoing\",\n+        freelancerProjectReference,\n+      });\n+  });\n+\n+exports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n+  firebaseAdmin\n+    .firestore()\n+    .doc(\"users/\" + newUser.uid)\n+    .set({\n+      displayName: newUser.displayName,\n+      email: newUser.email,\n+      emailVerified: newUser.emailVerified,\n+      joined: newUser.metadata.creationTime,\n+      avatar: newUser.photoURL,\n+      uniqueID: newUser.uid,\n+    });\n+});\n+\n+exports.updateReviews = functions.database\n+  .ref(\"{uid}/completedProjects/\")\n+  .onUpdate((snapshot, context) => {\n+    const newlyAdded = snapshot.after.val()\n+    const totalCompletedProjects = newlyAdded.keys(newlyAdded).length;\n+    const reviewed = newlyAdded.filter((project: Object) => project.hasOwnProperty('review'));\n+\n+    const ratings = []\n+\n+    reviewed.forEach((project) => {\n+        ratings.push(project.review.rating);\n+    })\n+\n+\n+    firebaseAdmin\n+    .firestore()\n+    .doc(\"function/reviews\")\n+    .set({newlyAdded, totalCompletedProjects, reviews})\n+\n+\n+  })\n"
+                }
+            ],
+            "date": 1638984690005,
+            "name": "Commit-0",
+            "content": "import * as functions from \"firebase-functions\";\n\nimport firebaseAdmin = require(\"firebase-admin\");\nimport { logger } from \"firebase-functions\";\n\nfirebaseAdmin.initializeApp();\n\nexports.addFreelancerRole = functions.firestore\n  .document(\"/freelancerApplications/{userUID}\")\n  .onDelete((snap, context) => {\n    logger.log(context.params.userUID);\n    logger.log(snap.data());\n    const userUID = context.params.userUID;\n    const skillCategory = snap.data().skillCategory;\n    const hiveName = snap.data().hiveName;\n    const skill = snap.data().skill;\n\n    firebaseAdmin\n      .auth()\n      .setCustomUserClaims(userUID, {\n        freelancer: true,\n      })\n      .catch((error: any) => {\n        return error;\n      });\n    return firebaseAdmin\n      .auth()\n      .getUser(userUID)\n      .then((user) => {\n        firebaseAdmin\n          .firestore()\n          .doc(\"freelancers/\" + user.uid)\n          .set({\n            avatar: user.photoURL,\n            about: \"I am a \" + skill + \".\",\n            bannerImageURL:\n              \"https://firebasestorage.googleapis.com/v0/b/halibee.appspot.com/o/images%2FdefaultImages%2Fbanner-placeholder.png?alt=media&token=6ec79b26-fb38-4e36-8fe7-bba9de7663f5\",\n            cardImageURL: user.photoURL,\n            category: skillCategory,\n            description: \"I am a \" + skill + \".\",\n            displayName: user.displayName,\n            hiveName,\n            projects: 0,\n            rating: 0,\n            skill,\n            uniqueID: user.uid,\n          });\n      });\n  });\n\nexports.createHiveRequest = functions.database\n  .ref(\"{uid}/myProjects/{projectID}\")\n  .onCreate((snapshot, context) => {\n    const clientProjectReference = context.params.projectID;\n    const hireRequestData = snapshot.val();\n    return firebaseAdmin\n      .database()\n      .ref(hireRequestData.freelancerUID + \"/hireRequests\")\n      .push({\n        ...hireRequestData,\n        clientProjectReference,\n      })\n      .then((hireRequestReference) => {\n        hireRequestReference.ref.update({\n          hireRequestReference: hireRequestReference.key,\n        });\n      });\n  });\n\n\nexports.createClientProject = functions.database\n  .ref(\"{uid}/clientProjects/{projectID}\")\n  .onCreate((snapshot, context) => {\n    const freelancerProjectReference = context.params.projectID;\n    const clientProjectData = snapshot.val();\n    return firebaseAdmin\n      .database()\n      .ref(\n        clientProjectData.clientUID +\n          \"/myProjects/\" +\n          clientProjectData.clientProjectReference\n      )\n      .update({\n        ...clientProjectData,\n        requestStatus: \"Ongoing\",\n        freelancerProjectReference,\n      });\n  });\n\nexports.registerNewUser = functions.auth.user().onCreate((newUser) => {\n  firebaseAdmin\n    .firestore()\n    .doc(\"users/\" + newUser.uid)\n    .set({\n      displayName: newUser.displayName,\n      email: newUser.email,\n      emailVerified: newUser.emailVerified,\n      joined: newUser.metadata.creationTime,\n      avatar: newUser.photoURL,\n      uniqueID: newUser.uid,\n    });\n});\n\n\n"
+        }
+    ]
+}
